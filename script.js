@@ -1,24 +1,7 @@
 const canvas = document.getElementById('gameFrame');
 const context = canvas.getContext('2d');
 
-document.addEventListener('keydown', event => {
-  if (event.keyCode === 37) {
-    myPaddle.isMovingLeft = true;
-  } else if (event.keyCode === 39) {
-    myPaddle.isMovingRight = true;
-  }
-});
-document.addEventListener('keyup', event => {
-  if (event.keyCode === 37) {
-    myPaddle.isMovingLeft = false;
-  } else if (event.keyCode === 39) {
-    myPaddle.isMovingRight = false;
-  }
-})
-
-let isGameOver = false;
-
-function Ball(x, y, radius, dx, dy) {
+function Ball(x, y, radius, dx, dy, paddle) {
   this.x = x;
   this.y = y;
   this.radius = radius;
@@ -26,6 +9,7 @@ function Ball(x, y, radius, dx, dy) {
   this.dy = dy;
   this.touchTheRight = false;
   this.touchTheLeft = false;
+  this.touchTheTop = false;
 
   this.drawBall = () => {
     context.beginPath();
@@ -39,42 +23,75 @@ function Ball(x, y, radius, dx, dy) {
       this.dx = -this.dx;
       this.touchTheLeft = true;
       this.touchTheRight = false;
+      this.touchTheTop = false;
     }
     else if ( this.x > canvas.width - this.radius ) {
       this.dx = -this.dx;
       this.touchTheLeft = false;
       this.touchTheRight = true;
+      this.touchTheTop = false;
     }
   
-    if ( this.y < this.radius )
+    if ( this.y < this.radius ) {
       this.dy = -this.dy;
+      this.touchTheLeft = false;
+      this.touchTheRight = false;
+      this.touchTheTop = true;
+    }
+  }
+  this.increaseXandY = () => {
+    this.dx+=1;
+    this.dy+=1;
+    if (this.dx*this.dy === 0) {
+      this.dx+=1;
+      this.dy+=1;
+    }
+  }
+  this.decreaseXandY = () => {
+    this.dx-=1;
+    this.dy-=1;
+    if (this.dx*this.dy === 0) {
+      this.dx-=1;
+      this.dy-=1;
+    }
+  }
+  this.increaseXandDecreaseY = () => {
+    this.dx+=1;
+    this.dy-=1;
+    if (this.dx*this.dy === 0) {
+      this.dx+=1;
+      this.dy-=1;
+    }
+  }
+  this.decreaseXandIncreaseY = () => {
+    this.dx-=1;
+    this.dy+=1;
+    if (this.dx*this.dy === 0) {
+      this.dx-=1;
+      this.dy+=1;
+    }
   }
   this.handleBallCollidePaddle = () => {
-    if ((this.x + this.radius >= myPaddle.x) && (this.x + this.radius <= myPaddle.x + myPaddle.width) && (this.y + this.radius >= canvas.height - myPaddle.height)) {
+    if ((this.x + this.radius >= paddle.x) && (this.x + this.radius <= paddle.x + paddle.width) && (this.y + this.radius >= paddle.y) && (this.y <= paddle.y)) {
       console.log(`${this.dx},${this.dy}`);
-      // console.log(myPaddle.isMovingLeft && this.dx>0 && this.dy>0);
-      // console.log(myPaddle.isMovingRight && this.dx<0 && this.dy>0);
-      // console.log(myPaddle.isMovingRight && this.dx>0 && this.dy>0);
-      // console.log(myPaddle.isMovingLeft && this.dx<0 && this.dy>0);
-      if (myPaddle.isMovingLeft && this.touchTheLeft && this.dx*this.dy !==0) {
-        this.dx-=1;
-        this.dy-=1;
+      this.y = paddle.y - this.radius;
+      if (paddle.isMovingLeft && this.touchTheLeft) {
+        this.decreaseXandY();
         console.log(`${this.dx},${this.dy}`);
-      } else if (myPaddle.isMovingRight && this.touchTheRight && this.dx*this.dy !==0) {
-        this.dx-=1;
-        this.dy-=1;
+      } else if (paddle.isMovingRight && this.touchTheRight) {
+        this.increaseXandDecreaseY();
         console.log(`${this.dx},${this.dy}`);
-      } else if (myPaddle.isMovingRight && this.touchTheLeft && this.dx*this.dy !==0) {
-        this.dx+=1;
-        this.dy+=1;
+      } else if (paddle.isMovingRight && this.touchTheLeft) {
+        this.increaseXandY();
         console.log(`${this.dx},${this.dy}`);
-      } else if (myPaddle.isMovingLeft && this.touchTheRight && this.dx*this.dy !==0) {
-        this.dx+=1;
-        this.dy+=1;
+      } else if (paddle.isMovingLeft && this.touchTheRight) {
+        this.decreaseXandIncreaseY();
         console.log(`${this.dx},${this.dy}`);
-      } else if (this.dx*this.dy === 0) {
-        this.dx+=1;
-        this.dy+=1;
+      } else if (paddle.isMovingLeft && this.touchTheTop) {
+        this.decreaseXandIncreaseY();
+        console.log(`${this.dx},${this.dy}`);
+      } else if (paddle.isMovingRight && this.touchTheTop) {
+        this.increaseXandY();
         console.log(`${this.dx},${this.dy}`);
       }
 
@@ -115,32 +132,93 @@ function Paddle(width, height, x, y, speed) {
   }
 }
 
-const myBall = new Ball(20, 20, 20, 5, 2);
-const myPaddle = new Paddle(80, 10, 0, canvas.height-10, 10);
+function Game(ball, paddle) {
+  this.isGameOver = false;
+  this.score = 0;
 
-function checkGameOver() {
-  if (myBall.y > canvas.height - myBall.radius) {
-    isGameOver = true;
+  this.addEvent = () => {
+    document.addEventListener('keydown', event => {
+      if (event.keyCode === 37) {
+        myPaddle.isMovingLeft = true;
+      } else if (event.keyCode === 39) {
+        myPaddle.isMovingRight = true;
+      }
+    });
+    document.addEventListener('keyup', event => {
+      if (event.keyCode === 37) {
+        myPaddle.isMovingLeft = false;
+      } else if (event.keyCode === 39) {
+        myPaddle.isMovingRight = false;
+      }
+    })
   }
-}
-
-function main() {
-  if (!isGameOver) {
+  this.checkGameOver = () => {
+    if (ball.y > canvas.height - ball.radius) {
+      return this.isGameOver = true;
+    }
+  }
+  this.drawResult = () => {
     context.clearRect(0, 0, canvas.width, canvas.height);
-    myBall.drawBall();
-    myPaddle.drawPaddle();
+    context.beginPath();
+    context.font = "30px Arial";
+    context.textAlign = "center";
+    context.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+    context.closePath();
 
-    myBall.handleBallCollideBounds();
-    myBall.handleBallCollidePaddle();
+    context.beginPath();
+    context.font = "20px Arial";
+    context.textAlign = "center";
+    context.fillText(`Your score: ${this.score}`, canvas.width/2, canvas.height/2+30);
+    context.closePath();
+  }
+  this.countUp = () => {
+    const timerSelector = document.getElementById('timer');
+    const scoreSelector = document.getElementById('score');
+    let second = 0;
+    let countUp = setInterval(() => {
+      ++second;
+      timerSelector.innerHTML = second + 's';
+      if (second%5===0) {
+        scoreSelector.innerHTML = second/5;
+        this.score = second/5;
+      }
+      if (this.checkGameOver()) {
+        clearInterval(countUp);
+      }
+    }, 1000);
+  }
+  this.play = () => {
+    this.addEvent();
+    
+    if (!this.isGameOver) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      ball.drawBall();
+      paddle.drawPaddle();
 
-    myBall.changeBallPosition();
-    myPaddle.changePaddlePosition();
+      ball.handleBallCollideBounds();
+      ball.handleBallCollidePaddle();
 
-    checkGameOver();
-    requestAnimationFrame(main);
-  } else {
-    console.log('GAME OVER!');
+      ball.changeBallPosition();
+      paddle.changePaddlePosition();
+
+      this.checkGameOver();
+      requestAnimationFrame(this.play);
+    } else {
+      this.drawResult();
+      console.log('GAME OVER!');
+    }
+  }
+  this.reset = () => {
+    location.reload();
   }
 }
 
-main();
+const myPaddle = new Paddle(80, 10, 0, canvas.height-10-50, 10);
+const myBall = new Ball(canvas.width/2, 15, 15, 6, 3, myPaddle);
+const playGame = new Game(myBall, myPaddle);
+
+playGame.play();
+playGame.countUp();
+document.getElementById('reset').addEventListener('click', () => {
+  playGame.reset();
+})

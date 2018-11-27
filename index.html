@@ -8,10 +8,24 @@
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+  <main>
+    <canvas id="gameFrame" width="500" height="500"></canvas>
 
-  <canvas id="gameFrame" width="500" height="500"></canvas>
-
+    <div id="display">
+      <div class="form-control">
+        <label for="timer">Thời gian chơi:</label>
+        <p id="timer">0s</p>
+      </div>
+      <div class="form-control">
+        <label for="score">Điểm số:</label>
+        <p id="score">0</p>
+      </div>
+      <div class="form-control">
+        <input type="button" value="Chơi lại" id='reset'>
+      </div>
+    </div>
+  </main>
+  
   <script src="./script.js"></script>
-
 </body>
 </html>
